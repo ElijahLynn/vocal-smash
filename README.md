@@ -1,10 +1,10 @@
-# Vocal Loupe
+# Vocal Smash
 
-Get quick, visual, useful feedback on hitting your notes with Vocal Loupe! 
+Get quick, visual, useful feedback on hitting your notes with Vocal Smash! 
 
-Vocal Loupe is a nifty singing app for serious singers and vocalists!
+Vocal Smash is a nifty singing app for serious singers and vocalists!
 
-Vocal Loupe is based on scientific research in the book Peak. One of the premises in the book is that the closer you get to instant feedback, then the more feedback cycles you can do in a given time, and this causes all types and ages of people self-learn at a faster pace, just by observing if they did it right or not. People have the ability to self-learn on if they get fast enough feedback. 
+Vocal Smash is based on scientific research in the book Peak. One of the premises in the book is that the closer you get to instant feedback, then the more feedback cycles you can do in a given time, and this causes all types and ages of people self-learn at a faster pace, just by observing if they did it right or not. People have the ability to self-learn on if they get fast enough feedback. 
 
 ## Features:
 
