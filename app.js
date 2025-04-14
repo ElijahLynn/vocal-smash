@@ -24,8 +24,8 @@ let stream = null;
 let analyser = null;
 let animationFrame = null;
 
-// Current settings storage
-let currentSettings = {
+// Default settings
+const defaultSettings = {
     waterfall: 20,
     speed: 4,
     scaleY: 100,
@@ -34,16 +34,12 @@ let currentSettings = {
     bass: -45
 };
 
+// Load settings from localStorage or use defaults
+let currentSettings = loadSettings();
+
 // Waterfall presets
 const presets = {
-    default: {
-        waterfall: 20,
-        speed: 4,
-        scaleY: 100,
-        brightness: 45,
-        bar: 10,
-        bass: -45
-    },
+    default: { ...defaultSettings },
     matrix: {
         waterfall: 80,
         speed: 8,
@@ -78,6 +74,36 @@ const presets = {
     }
 };
 
+// Load settings from localStorage
+function loadSettings() {
+    try {
+        const savedSettings = localStorage.getItem('vocalSmashSettings');
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            // Validate all required properties exist
+            const isValid = Object.keys(defaultSettings).every(key =>
+                parsed.hasOwnProperty(key) &&
+                typeof parsed[key] === typeof defaultSettings[key]
+            );
+            if (isValid) {
+                return parsed;
+            }
+        }
+    } catch (error) {
+        console.warn('Error loading settings:', error);
+    }
+    return { ...defaultSettings };
+}
+
+// Save settings to localStorage
+function saveSettings() {
+    try {
+        localStorage.setItem('vocalSmashSettings', JSON.stringify(currentSettings));
+    } catch (error) {
+        console.warn('Error saving settings:', error);
+    }
+}
+
 // Update value displays
 function updateValueDisplay(input) {
     const display = input.parentElement.querySelector('.value-display');
@@ -111,6 +137,9 @@ function applyWaterfallSettings(settings, updateInputs = true) {
     visualizer.setAttribute('data-brightness', settings.brightness);
     visualizer.setAttribute('data-bar', settings.bar);
     visualizer.setAttribute('data-bass', settings.bass);
+
+    // Save settings
+    saveSettings();
 }
 
 // Event listeners for controls
@@ -118,18 +147,21 @@ waterfallHeight.addEventListener('input', (e) => {
     currentSettings.waterfall = parseInt(e.target.value);
     visualizer.setAttribute('data-waterfall', e.target.value);
     updateValueDisplay(e.target);
+    saveSettings();
 });
 
 waterfallSpeed.addEventListener('input', (e) => {
     currentSettings.speed = parseInt(e.target.value);
     visualizer.setAttribute('data-speed', e.target.value);
     updateValueDisplay(e.target);
+    saveSettings();
 });
 
 scaleY.addEventListener('input', (e) => {
     currentSettings.scaleY = parseInt(e.target.value);
     visualizer.setAttribute('data-scale-y', e.target.value);
     updateValueDisplay(e.target);
+    saveSettings();
 });
 
 presetEffect.addEventListener('change', (e) => {
@@ -241,10 +273,8 @@ startButton.addEventListener('click', () => {
 
 stopButton.addEventListener('click', stop);
 
-// Initialize displays
+// Initialize displays and apply saved settings
 updateValueDisplay(waterfallHeight);
 updateValueDisplay(waterfallSpeed);
 updateValueDisplay(scaleY);
-
-// Apply initial settings
 applyWaterfallSettings(currentSettings);
