@@ -1,0 +1,128 @@
+:root {
+    --primary: #0ff;
+    --background: #111;
+    --text: #fff;
+    --accent: #f0f;
+}
+
+body {
+    background: var(--background);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    color: var(--primary);
+    font-size: 3rem;
+    margin: 1rem 0;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-align: center;
+}
+
+.visualizer-container {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+showcqt-element {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1rem;
+    align-items: center;
+}
+
+.start-button {
+    background: var(--primary);
+    color: var(--background);
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.start-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.start-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.stop-button {
+    background: #f00;
+    color: var(--text);
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.stop-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+}
+
+.stop-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.volume-meter {
+    width: 200px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.volume-meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 0.1s ease;
+}
+
+.volume-meter-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text);
+    font-size: 0.8rem;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+@media (max-width: 600px) {
+    h1 {
+        font-size: 2rem;
+    }
+}
