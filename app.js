@@ -2,17 +2,21 @@
 const visualizer = document.getElementById('visualizer');
 const startButton = document.getElementById('startButton');
 const stopButton = document.getElementById('stopButton');
+const volumeMeterFill = document.getElementById('volumeMeterFill');
+const volumeMeterText = document.getElementById('volumeMeterText');
 
 // Verify required DOM elements are found
-if (!visualizer || !startButton || !stopButton) {
+if (!visualizer || !startButton || !stopButton || !volumeMeterFill || !volumeMeterText) {
     console.error('Missing required DOM elements:', {
-        visualizer, startButton, stopButton
+        visualizer, startButton, stopButton, volumeMeterFill, volumeMeterText
     });
     throw new Error('Required DOM elements not found');
 }
 
 let source = null;
 let stream = null;
+let analyser = null;
+let animationFrame = null;
 
 function stop() {
     if (source) {
@@ -25,9 +29,45 @@ function stop() {
         stream = null;
     }
 
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+    }
+
+    // Reset volume meter
+    volumeMeterFill.style.width = '0%';
+    volumeMeterText.textContent = '-∞ dB';
+
     startButton.disabled = false;
     stopButton.disabled = true;
     startButton.textContent = 'Start Listening';
+}
+
+function updateVolumeMeter() {
+    if (!analyser || !source) return;
+
+    const dataArray = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatTimeDomainData(dataArray);
+
+    // Calculate RMS value
+    let rms = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+        rms += dataArray[i] * dataArray[i];
+    }
+    rms = Math.sqrt(rms / dataArray.length);
+
+    // Convert to dB
+    const db = 20 * Math.log10(Math.max(rms, 1e-10));
+
+    // Map dB to percentage (typical range: -60dB to 0dB)
+    const percent = Math.max(0, Math.min(100, (db + 60) * 1.67));
+
+    // Update volume meter
+    volumeMeterFill.style.width = `${percent}%`;
+    volumeMeterText.textContent = `${db.toFixed(1)} dB`;
+
+    // Continue animation
+    animationFrame = requestAnimationFrame(updateVolumeMeter);
 }
 
 async function start() {
@@ -49,6 +89,11 @@ async function start() {
         // Create media stream source using visualizer's audio context
         source = visualizer.audio_context.createMediaStreamSource(stream);
 
+        // Create analyzer node for volume meter
+        analyser = visualizer.audio_context.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+
         // Connect to visualizer's audio input
         source.connect(visualizer.audio_input);
 
@@ -60,6 +105,9 @@ async function start() {
         visualizer.setAttribute('data-speed', '4');        // Faster updates
         visualizer.setAttribute('data-scale-x', '15');     // Show fewer octaves (about 2-3)
         visualizer.setAttribute('data-scale-y', '100');    // Full height
+
+        // Start volume meter animation
+        updateVolumeMeter();
 
         startButton.textContent = 'Listening...';
     } catch (error) {

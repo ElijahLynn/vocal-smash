@@ -57,6 +57,7 @@
             gap: 1rem;
             justify-content: center;
             padding: 1rem;
+            align-items: center;
         }
 
         .start-button {
@@ -101,6 +102,33 @@
             cursor: not-allowed;
         }
 
+        .volume-meter {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .volume-meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.1s ease;
+        }
+
+        .volume-meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text);
+            font-size: 0.8rem;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+
         @media (max-width: 600px) {
             h1 {
                 font-size: 2rem;
@@ -120,6 +148,10 @@
 
         <div class="button-group">
             <button class="start-button" id="startButton">Start Listening</button>
+            <div class="volume-meter">
+                <div class="volume-meter-fill" id="volumeMeterFill"></div>
+                <div class="volume-meter-text" id="volumeMeterText">-∞ dB</div>
+            </div>
             <button class="stop-button" id="stopButton" disabled>Stop</button>
         </div>
     </div>
