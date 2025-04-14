@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.25.2",
+    "live-server": "^1.2.2"
+  },
+  "scripts": {
+    "start": "live-server --port=3000",
+    "build": "esbuild app.js --bundle --outfile=dist/bundle.js --format=esm"
+  }
+}
