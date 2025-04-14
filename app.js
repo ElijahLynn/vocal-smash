@@ -5,6 +5,12 @@ const stopButton = document.getElementById('stopButton');
 const volumeMeterFill = document.getElementById('volumeMeterFill');
 const volumeMeterText = document.getElementById('volumeMeterText');
 
+// Waterfall Controls
+const waterfallHeight = document.getElementById('waterfallHeight');
+const waterfallSpeed = document.getElementById('waterfallSpeed');
+const scaleY = document.getElementById('scaleY');
+const presetEffect = document.getElementById('presetEffect');
+
 // Verify required DOM elements are found
 if (!visualizer || !startButton || !stopButton || !volumeMeterFill || !volumeMeterText) {
     console.error('Missing required DOM elements:', {
@@ -17,6 +23,121 @@ let source = null;
 let stream = null;
 let analyser = null;
 let animationFrame = null;
+
+// Current settings storage
+let currentSettings = {
+    waterfall: 20,
+    speed: 4,
+    scaleY: 100,
+    brightness: 45,
+    bar: 10,
+    bass: -45
+};
+
+// Waterfall presets
+const presets = {
+    default: {
+        waterfall: 20,
+        speed: 4,
+        scaleY: 100,
+        brightness: 45,
+        bar: 10,
+        bass: -45
+    },
+    matrix: {
+        waterfall: 80,
+        speed: 8,
+        scaleY: 70,
+        brightness: 35,
+        bar: 5,
+        bass: -40
+    },
+    smooth: {
+        waterfall: 40,
+        speed: 2,
+        scaleY: 100,
+        brightness: 30,
+        bar: 15,
+        bass: -35
+    },
+    reactive: {
+        waterfall: 15,
+        speed: 6,
+        scaleY: 90,
+        brightness: 50,
+        bar: 20,
+        bass: -30
+    },
+    minimal: {
+        waterfall: 0,
+        speed: 1,
+        scaleY: 100,
+        brightness: 40,
+        bar: 25,
+        bass: -25
+    }
+};
+
+// Update value displays
+function updateValueDisplay(input) {
+    const display = input.parentElement.querySelector('.value-display');
+    if (display) {
+        const suffix = input.id === 'waterfallSpeed' ? 'x' : '%';
+        display.textContent = `${input.value}${suffix}`;
+    }
+}
+
+// Apply waterfall settings
+function applyWaterfallSettings(settings, updateInputs = true) {
+    // Update current settings
+    Object.assign(currentSettings, settings);
+
+    // Only update input values if requested
+    if (updateInputs) {
+        waterfallHeight.value = settings.waterfall;
+        waterfallSpeed.value = settings.speed;
+        scaleY.value = settings.scaleY;
+
+        // Update displays
+        updateValueDisplay(waterfallHeight);
+        updateValueDisplay(waterfallSpeed);
+        updateValueDisplay(scaleY);
+    }
+
+    // Always apply to visualizer
+    visualizer.setAttribute('data-waterfall', settings.waterfall);
+    visualizer.setAttribute('data-speed', settings.speed);
+    visualizer.setAttribute('data-scale-y', settings.scaleY);
+    visualizer.setAttribute('data-brightness', settings.brightness);
+    visualizer.setAttribute('data-bar', settings.bar);
+    visualizer.setAttribute('data-bass', settings.bass);
+}
+
+// Event listeners for controls
+waterfallHeight.addEventListener('input', (e) => {
+    currentSettings.waterfall = parseInt(e.target.value);
+    visualizer.setAttribute('data-waterfall', e.target.value);
+    updateValueDisplay(e.target);
+});
+
+waterfallSpeed.addEventListener('input', (e) => {
+    currentSettings.speed = parseInt(e.target.value);
+    visualizer.setAttribute('data-speed', e.target.value);
+    updateValueDisplay(e.target);
+});
+
+scaleY.addEventListener('input', (e) => {
+    currentSettings.scaleY = parseInt(e.target.value);
+    visualizer.setAttribute('data-scale-y', e.target.value);
+    updateValueDisplay(e.target);
+});
+
+presetEffect.addEventListener('change', (e) => {
+    const preset = presets[e.target.value];
+    if (preset) {
+        applyWaterfallSettings(preset);
+    }
+});
 
 function stop() {
     if (source) {
@@ -97,14 +218,8 @@ async function start() {
         // Connect to visualizer's audio input
         source.connect(visualizer.audio_input);
 
-        // Set visualization parameters for focused note display
-        visualizer.setAttribute('data-waterfall', '20');    // Less waterfall for clearer current note
-        visualizer.setAttribute('data-brightness', '45');   // Higher brightness for more contrast
-        visualizer.setAttribute('data-bar', '10');         // Lower background frequencies
-        visualizer.setAttribute('data-bass', '-45');       // Further reduce bass frequencies
-        visualizer.setAttribute('data-speed', '4');        // Faster updates
-        visualizer.setAttribute('data-scale-x', '15');     // Show fewer octaves (about 2-3)
-        visualizer.setAttribute('data-scale-y', '100');    // Full height
+        // Apply current settings without updating input values
+        applyWaterfallSettings(currentSettings, false);
 
         // Start volume meter animation
         updateVolumeMeter();
@@ -125,3 +240,11 @@ startButton.addEventListener('click', () => {
 });
 
 stopButton.addEventListener('click', stop);
+
+// Initialize displays
+updateValueDisplay(waterfallHeight);
+updateValueDisplay(waterfallSpeed);
+updateValueDisplay(scaleY);
+
+// Apply initial settings
+applyWaterfallSettings(currentSettings);
