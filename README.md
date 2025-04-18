@@ -32,8 +32,6 @@ Vocal Smash is based on scientific research in the book Peak. One of the premise
 * Color scheme: Adjust color schemes. This is way in the future, if I do it.
 
 
-
-
 I built the ultimate singing feedback tool for myself and think others will love it too. Check the video out!
 
 My name is Elijah Lynn and I am an open source software engineer. I've been teaching myself how to sing and have been looking for a tool to give me pitch feedback quickly. I haven't found what I have been looking for and I came across the open source project [YouTube Musical Spectrum](https://github.com/mfcc64/youtube-musical-spectrum) by Muhammad Faiz based on the showcqt.js library, also created by Muhammad.
