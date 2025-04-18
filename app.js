@@ -206,6 +206,15 @@ async function start() {
         stopButton.disabled = false;
         startButton.textContent = 'Starting...';
 
+        // ensure audio context is running
+        if (!visualizer.audio_context) {
+            throw new Error('Audio context not initialized');
+        }
+
+        if (visualizer.audio_context.state === 'suspended') {
+            await visualizer.audio_context.resume();
+        }
+
         // Get microphone stream with disabled audio processing
         stream = await navigator.mediaDevices.getUserMedia({
             audio: {
@@ -237,6 +246,13 @@ async function start() {
     } catch (error) {
         console.error('Error:', error);
         stop();
+
+        // Show more helpful error message for permission denials
+        if (error.name === 'NotAllowedError') {
+            startButton.textContent = 'Microphone access denied';
+        } else {
+            startButton.textContent = 'Error - Try again';
+        }
     }
 }
 
