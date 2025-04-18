@@ -24,22 +24,16 @@ let stream = null;
 let analyser = null;
 let animationFrame = null;
 
-// Default settings
-const defaultSettings = {
-    waterfall: 20,
-    speed: 4,
-    scaleY: 100,
-    brightness: 45,
-    bar: 10,
-    bass: -45
-};
-
-// Load settings from localStorage or use defaults
-let currentSettings = loadSettings();
-
 // Waterfall presets
 const presets = {
-    default: { ...defaultSettings },
+    minimal: {
+        waterfall: 0,
+        speed: 1,
+        scaleY: 100,
+        brightness: 40,
+        bar: 25,
+        bass: -25
+    },
     matrix: {
         waterfall: 80,
         speed: 8,
@@ -63,36 +57,19 @@ const presets = {
         brightness: 50,
         bar: 20,
         bass: -30
-    },
-    minimal: {
-        waterfall: 0,
-        speed: 1,
-        scaleY: 100,
-        brightness: 40,
-        bar: 25,
-        bass: -25
     }
 };
 
+// Default settings - use minimal preset as default
+const defaultSettings = { ...presets.minimal };
+
+// Load settings from localStorage or use defaults
+let currentSettings = loadSettings();
+
 // Load settings from localStorage
 function loadSettings() {
-    try {
-        const savedSettings = localStorage.getItem('vocalSmashSettings');
-        if (savedSettings) {
-            const parsed = JSON.parse(savedSettings);
-            // Validate all required properties exist
-            const isValid = Object.keys(defaultSettings).every(key =>
-                parsed.hasOwnProperty(key) &&
-                typeof parsed[key] === typeof defaultSettings[key]
-            );
-            if (isValid) {
-                return parsed;
-            }
-        }
-    } catch (error) {
-        console.warn('Error loading settings:', error);
-    }
-    return { ...defaultSettings };
+    // Always return minimal preset for now
+    return { ...presets.minimal };
 }
 
 // Save settings to localStorage
