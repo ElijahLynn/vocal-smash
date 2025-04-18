@@ -12,7 +12,8 @@
   "scripts": {
     "prestart": "mkdir -p certs && if [ ! -f certs/certificate.pem ]; then openssl req -x509 -newkey rsa:4096 -keyout certs/private.key -out certs/certificate.pem -days 365 -nodes -subj '/CN=VocalSmash Development' -addext 'subjectAltName=DNS:localhost,DNS:*.local,IP:0.0.0.0'; fi",
     "start": "live-server --port=3000 --host=0.0.0.0 --https=./node_modules/live-server-https --no-browser",
-    "build": "esbuild app.js --bundle --outfile=dist/bundle.js --format=esm"
+    "build": "mkdir -p dist && cp index.html styles.css dist/ && cp -r showcqt-element html5-showcqtbar showcqt-js lib dist/ && esbuild app.js --bundle --outfile=dist/app.js --format=esm",
+    "vercel-build": "npm run build"
   },
   "keywords": [
     "audio",
