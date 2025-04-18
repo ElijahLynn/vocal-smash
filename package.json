@@ -9,8 +9,8 @@
   "description": "Real-time vocal visualization using ShowCQT",
   "main": "app.js",
   "scripts": {
+    "prestart": "mkdir -p certs && if [ ! -f certs/certificate.pem ]; then mkcert -key-file certs/private.key -cert-file certs/certificate.pem localhost; fi",
     "start": "http-server -p 3000 -S -C certs/certificate.pem -K certs/private.key --cors",
-    "start-insecure": "http-server -p 3000 --cors",
     "build": "esbuild app.js --bundle --outfile=dist/bundle.js --format=esm"
   },
   "keywords": [
