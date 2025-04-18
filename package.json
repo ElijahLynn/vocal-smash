@@ -2,7 +2,8 @@
   "devDependencies": {
     "esbuild": "^0.25.2",
     "http-server": "^14.1.1",
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "live-server-https": "^0.0.2"
   },
   "name": "vocal-smash",
   "version": "1.0.0",
@@ -10,7 +11,7 @@
   "main": "app.js",
   "scripts": {
     "prestart": "mkdir -p certs && if [ ! -f certs/certificate.pem ]; then mkcert -key-file certs/private.key -cert-file certs/certificate.pem localhost; fi",
-    "start": "http-server -p 3000 -S -C certs/certificate.pem -K certs/private.key --cors",
+    "start": "live-server --port=3000 --https=./node_modules/live-server-https",
     "build": "esbuild app.js --bundle --outfile=dist/bundle.js --format=esm"
   },
   "keywords": [
