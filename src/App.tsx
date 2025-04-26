@@ -8,7 +8,7 @@ import { useRegisterSW } from './pwa/useRegisterSW';
 import { PitchDetector, PitchDetectionResult } from './audio/PitchDetector';
 
 function App() {
-  const { isDarkMode, isDebugMode, setDarkMode, setDebugMode } = useStore();
+  const { isDebugMode, setDebugMode } = useStore();
   const [isRecording, setIsRecording] = useState(false);
   const [pitchData, setPitchData] = useState<PitchDetectionResult | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -88,7 +88,6 @@ function App() {
     };
   }, [isRecording]);
 
-  const toggleDarkMode = () => setDarkMode(!isDarkMode);
   const toggleDebugMode = () => setDebugMode(!isDebugMode);
   const toggleLeaderDirection = () => setLeaderDirection(leaderDirection === 'ltr' ? 'rtl' : 'ltr');
 
@@ -103,15 +102,15 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+    <div className="min-h-screen dark">
       <div
-        className="relative w-screen h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+        className="relative w-screen h-screen bg-gray-900 text-gray-100"
         onClick={handleScreenClick}
       >
         <SpectrogramDisplay
           pitchData={pitchData}
           isRecording={isRecording}
-          isDarkMode={isDarkMode}
+          isDarkMode={true}
         />
 
         {/* Instructions Overlay */}
@@ -144,7 +143,7 @@ function App() {
         {/* Settings Button */}
         <button
           onClick={() => setShowSettings(true)}
-          className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+          className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -169,7 +168,7 @@ function App() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 p-4 rounded-lg backdrop-blur-sm bg-white/50 dark:bg-black/50 flex gap-4 items-center"
+              className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 p-4 rounded-lg backdrop-blur-sm bg-black/50 flex gap-4 items-center"
             >
               <span>Install as app?</span>
               <div className="flex gap-2">
