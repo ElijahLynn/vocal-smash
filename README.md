@@ -1,23 +1,27 @@
 # Vocal Smash
 
-Get quick, visual, useful feedback on hitting your notes with Vocal Smash!
+Get fast, visual, useful feedback on hitting your notes with Vocal Smash!
 
 Vocal Smash is a nifty singing app for serious singers and vocalists!
 
-Vocal Smash is based on scientific research in the book Peak. One of the premises in the book is that the closer you get to instant feedback, then the more feedback cycles you can do in a given time, and this causes all types and ages of people self-learn at a faster pace, just by observing if they did it right or not. People have the ability to self-learn on if they get fast enough feedback.
+Vocal Smash is based on scientific research in the book Peak. One of the premises in the book is that the closer you get to instant feedback, then the more feedback cycles you can do in a given time, and this causes all types and ages of people to self-learn at a faster pace, just by observing if they did it right or not. People have the ability to self-learn if they get fast enough feedback.
 
 ## Features:
 
 **MVP:**
-
 * Pinch to zoom in on your range.
+* Tap to freeze and unfreeze: Sometimes you just want to sing a short riff then see how you did.
 
-* Hold to freeze, tap to unfreeze: Sometimes you just want to sing a short riff then see how you did.
+
+### Roadmap:
+* Progressive Web App: Installable on any device with a browser.
+* Android App: I think Play Store has native support for PWAs.
+* iOS App: Depends on if I can submit a PWA to the App Store.
 
 
 **Post-MVP:**
 
-* Game: Compete with others and yourself with your "Singing Score".  others can upload their accapella recordings and you can compete against others for the best singing score which is based on how well you match the singer.
+* Game: Compete with others and yourself with your "Smash Score". Others can upload their accapella recordings and you can compete against others for the best smash score which is based on how well you match the recording.
 * Gestures: Swipe away or towards the animation flow direction to slow down or speed up the visualization flow.
 
 
