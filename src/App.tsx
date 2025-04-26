@@ -92,9 +92,22 @@ function App() {
   const toggleDebugMode = () => setDebugMode(!isDebugMode);
   const toggleLeaderDirection = () => setLeaderDirection(leaderDirection === 'ltr' ? 'rtl' : 'ltr');
 
+  const handleScreenClick = (e: React.MouseEvent) => {
+    // Don't toggle recording if clicking on settings or install prompt
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('.settings-panel')) {
+      return;
+    }
+
+    setIsRecording(!isRecording);
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-      <div className="relative w-screen h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <div
+        className="relative w-screen h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+        onClick={handleScreenClick}
+      >
         <SpectrogramDisplay
           pitchData={pitchData}
           isRecording={isRecording}
@@ -128,19 +141,6 @@ function App() {
           )}
         </AnimatePresence>
 
-        {/* Bottom Controls */}
-        <div className="absolute bottom-4 left-4 flex gap-2">
-          <button
-            onClick={() => isRecording ? stopRecording() : startRecording()}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${isRecording
-              ? 'bg-red-500 hover:bg-red-600 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-          >
-            {isRecording ? 'Stop' : 'Start'}
-          </button>
-        </div>
-
         {/* Settings Button */}
         <button
           onClick={() => setShowSettings(true)}
@@ -155,7 +155,7 @@ function App() {
         {/* Settings Modal */}
         {showSettings && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 settings-panel"
             onClick={() => setShowSettings(false)}
           >
             <SettingsPanel onClose={() => setShowSettings(false)} />
