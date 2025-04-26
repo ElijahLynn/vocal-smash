@@ -5,9 +5,13 @@ interface AppState {
     isRecording: boolean;
     pitchData: PitchDetectionResult | null;
     error: string | null;
+    clarityThreshold: number;
+    leaderDirection: 'ltr' | 'rtl';
     setIsRecording: (isRecording: boolean) => void;
-    setPitchData: (pitchData: PitchDetectionResult | null) => void;
+    setPitchData: (data: PitchDetectionResult | null) => void;
     setError: (error: string | null) => void;
+    setClarityThreshold: (threshold: number) => void;
+    setLeaderDirection: (direction: 'ltr' | 'rtl') => void;
     history: PitchDetectionResult[];
     addToHistory: (data: PitchDetectionResult) => void;
     clearHistory: () => void;
@@ -17,23 +21,27 @@ export const useStore = create<AppState>((set) => ({
     isRecording: false,
     pitchData: null,
     error: null,
+    clarityThreshold: 0.8,
+    leaderDirection: 'ltr',
     history: [],
     setIsRecording: (isRecording) => set({ isRecording }),
-    setPitchData: (pitchData) => {
+    setPitchData: (data) => {
         set((state) => {
-            if (pitchData && (!state.pitchData ||
-                pitchData.note !== state.pitchData.note ||
-                pitchData.octave !== state.pitchData.octave ||
-                Math.abs(pitchData.cents - state.pitchData.cents) > 5)) {
+            if (data && (!state.pitchData ||
+                data.note !== state.pitchData.note ||
+                data.octave !== state.pitchData.octave ||
+                Math.abs(data.cents - state.pitchData.cents) > 5)) {
                 return {
-                    pitchData,
-                    history: [...state.history.slice(-99), pitchData],
+                    pitchData: data,
+                    history: [...state.history.slice(-99), data],
                 };
             }
-            return { pitchData };
+            return { pitchData: state.pitchData };
         });
     },
     setError: (error) => set({ error }),
+    setClarityThreshold: (threshold) => set({ clarityThreshold: threshold }),
+    setLeaderDirection: (direction) => set({ leaderDirection: direction }),
     addToHistory: (data) =>
         set((state) => ({
             history: [...state.history.slice(-99), data]

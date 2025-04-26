@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PitchDetector } from './audio/PitchDetector';
-import { PitchDisplay } from './ui/components/PitchDisplay';
-import { PitchHistory } from './ui/components/PitchHistory';
+import { SpectrogramDisplay } from './ui/components/SpectrogramDisplay';
+import { VolumeMeter } from './ui/components/VolumeMeter';
+import { ClarityThresholdControl } from './ui/components/ClarityThresholdControl';
+import { LeaderSpeedControl } from './ui/components/LeaderSpeedControl';
 import { useStore } from './ui/store/useStore';
 import { useAudioPermission } from './ui/hooks/useAudioPermission';
 import { useRegisterSW } from './pwa/useRegisterSW';
@@ -11,6 +13,11 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<number>();
+  const [currentRms, setCurrentRms] = useState(0);
+  const [clarityThreshold, setClarityThreshold] = useState(0.5);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -21,16 +28,17 @@ function App() {
 
   const detectorRef = useRef<PitchDetector | null>(null);
   const animationFrameRef = useRef<number>();
+  const isRecordingRef = useRef(false);
 
   const {
     isRecording,
     pitchData,
     error,
-    history,
     setIsRecording,
     setPitchData,
     setError,
-    clearHistory,
+    leaderDirection,
+    setLeaderDirection,
   } = useStore();
 
   const {
@@ -50,17 +58,11 @@ function App() {
 
   useEffect(() => {
     if (!detectorRef.current) {
-      console.log('Creating new PitchDetector');
-      detectorRef.current = new PitchDetector();
+      detectorRef.current = new PitchDetector(isDebugMode);
+    } else {
+      detectorRef.current.setDebugMode(isDebugMode);
     }
-
-    return () => {
-      if (detectorRef.current) {
-        console.log('Cleaning up PitchDetector');
-        detectorRef.current.stop();
-      }
-    };
-  }, []);
+  }, [isDebugMode]);
 
   const startRecording = async () => {
     if (!isGranted && needsPrompt) {
@@ -69,58 +71,43 @@ function App() {
     }
 
     try {
-      console.log('Starting audio context...');
-      await detectorRef.current?.start();
-      console.log('Audio context started');
-
-      // Set recording state first
       setIsRecording(true);
+      isRecordingRef.current = true;
+
+      await detectorRef.current?.start();
       setError(null);
 
-      // Create a ref to track if we're still recording
-      const isRecordingRef = { current: true };
-
       const updatePitch = () => {
-        if (!detectorRef.current || !isRecordingRef.current) {
-          console.log('Recording stopped or no detector');
-          return;
-        }
+        if (!detectorRef.current || !isRecordingRef.current) return;
 
-        console.log('Update loop running');
         const result = detectorRef.current.analyze();
-        if (result) {
-          console.log('Setting pitch data:', result);
+        if (result?.rms !== undefined) {
+          setCurrentRms(result.rms);
+        }
+        if (result?.frequency && result.confidence >= clarityThreshold) {
           setPitchData(result);
+        } else {
+          setPitchData(null);
         }
 
-        // Use the ref instead of the state
         if (isRecordingRef.current) {
           animationFrameRef.current = requestAnimationFrame(updatePitch);
-        } else {
-          console.log('Recording stopped, ending loop');
         }
       };
 
-      console.log('Starting pitch detection loop');
       animationFrameRef.current = requestAnimationFrame(updatePitch);
-
-      // Update the cleanup function
-      return () => {
-        isRecordingRef.current = false;
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
     } catch (err) {
       console.error('Failed to start recording:', err);
       setError('Failed to start recording. Please check your microphone.');
       setIsRecording(false);
+      isRecordingRef.current = false;
     }
   };
 
   const stopRecording = () => {
-    console.log('Stopping recording...');
+    isRecordingRef.current = false;
     setIsRecording(false);
+    setCurrentRms(0);
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -129,121 +116,193 @@ function App() {
 
     detectorRef.current?.stop();
     setPitchData(null);
-    console.log('Recording stopped');
   };
 
-  // Add effect to handle recording state changes
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-
-    if (isRecording) {
-      const setupRecording = async () => {
-        cleanup = await startRecording();
-      };
-      setupRecording();
+    if (isRecording && !isRecordingRef.current) {
+      startRecording();
+    } else if (!isRecording && isRecordingRef.current) {
+      stopRecording();
     }
 
     return () => {
-      cleanup?.();
+      if (isRecordingRef.current) {
+        stopRecording();
+      }
     };
   }, [isRecording]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+  const toggleDebugMode = () => setIsDebugMode(!isDebugMode);
+  const toggleLeaderDirection = () => setLeaderDirection(leaderDirection === 'ltr' ? 'rtl' : 'ltr');
+
+  // Reset the controls timeout
+  const resetControlsTimeout = () => {
+    if (controlsTimeoutRef.current) {
+      window.clearTimeout(controlsTimeoutRef.current);
+    }
+    setShowControls(true);
+    controlsTimeoutRef.current = window.setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  };
+
+  // Initialize controls timeout
+  useEffect(() => {
+    resetControlsTimeout();
+    return () => {
+      if (controlsTimeoutRef.current) {
+        window.clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isDenied) return;
+
+    resetControlsTimeout();
+
+    if (isRecording) {
+      stopRecording();
+    } else {
+      setIsRecording(true);
+    }
+  };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'
-      }`}>
-      <header className="mb-8 text-center relative w-full">
-        <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
-          }`}>Vocal Smash</h1>
-        <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>Real-time pitch detection</p>
+    <div
+      className={`min-h-screen w-full fixed inset-0 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'}`}
+      onClick={handleInteraction}
+      onTouchStart={handleInteraction}
+      onMouseMove={resetControlsTimeout}
+    >
+      {/* Debug Overlay */}
+      {isDebugMode && isRecording && (
+        <div className="absolute top-4 right-4 z-20 w-64 space-y-2">
+          <div className="backdrop-blur-sm bg-black/30 rounded-lg">
+            <VolumeMeter
+              rms={pitchData?.rms ?? 0}
+              isDarkMode={true}
+            />
+          </div>
+          <div className="backdrop-blur-sm bg-black/30 rounded-lg">
+            <ClarityThresholdControl
+              isDarkMode={true}
+            />
+          </div>
+          <div className="backdrop-blur-sm bg-black/30 rounded-lg">
+            <LeaderSpeedControl
+              isDarkMode={true}
+            />
+          </div>
+        </div>
+      )}
 
-        <button
-          onClick={toggleDarkMode}
-          className={`absolute right-4 top-0 p-2 rounded-full ${isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-200 text-gray-600'
-            } hover:opacity-80 transition-opacity`}
-        >
-          {isDarkMode ? '☀️' : '🌙'}
-        </button>
-      </header>
+      {/* Main Content */}
+      <div className="relative w-full h-full">
+        <SpectrogramDisplay
+          pitchData={pitchData}
+          isRecording={isRecording}
+          isDarkMode={isDarkMode}
+        />
 
-      <main className="w-full max-w-lg space-y-6">
-        <PitchDisplay pitchData={pitchData} isRecording={isRecording} isDarkMode={isDarkMode} />
-
-        {history.length > 0 && (
-          <PitchHistory history={history} isDarkMode={isDarkMode} />
+        {/* Instructions Overlay */}
+        {!isRecording && (
+          <div className="absolute inset-0 flex items-center justify-center text-center">
+            <div className="bg-black bg-opacity-50 p-4 rounded-lg backdrop-blur-sm">
+              {isDenied ? (
+                <p className="text-white">Please enable microphone access to use Vocal Smash</p>
+              ) : (
+                <p className="text-white">Click or touch anywhere to begin<br />Click or touch again to pause</p>
+              )}
+            </div>
+          </div>
         )}
 
-        <div className="flex justify-center gap-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isDenied}
-            className={`px-8 py-3 rounded-full font-semibold text-white shadow-lg
-              ${isRecording
-                ? 'bg-pitch-sharp hover:bg-red-600'
-                : isDarkMode
-                  ? 'bg-indigo-600 hover:bg-indigo-700'
-                  : 'bg-natural-primary hover:bg-natural-hover'
-              } ${isDenied ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isRecording ? 'Stop' : 'Start'}
-          </motion.button>
-
-          {history.length > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={clearHistory}
-              className={`px-8 py-3 rounded-full font-semibold ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              Clear History
-            </motion.button>
-          )}
-        </div>
-
+        {/* Error Overlay */}
         <AnimatePresence>
           {(error || permissionError) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`mt-4 p-4 rounded-lg text-center ${isDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
-                }`}
+              className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 p-4 rounded-lg backdrop-blur-sm bg-red-500/50 text-white text-center max-w-md"
             >
               {error || permissionError}
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
 
-      <footer className={`mt-auto py-4 text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-        }`}>
-        <p>Built with ❤️ for singers</p>
-
-        {isUpdateAvailable && (
-          <button
-            onClick={updateServiceWorker}
-            className={`mt-2 ${isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
-              }`}
+      {/* Bottom Controls */}
+      <AnimatePresence>
+        {showControls && (
+          <motion.div
+            className="absolute bottom-4 right-4 z-20 flex gap-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
           >
-            Update available! Click to refresh
-          </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleLeaderDirection(); }}
+              className={`p-2 rounded-full ${isDarkMode
+                ? 'bg-gray-800/70 text-gray-400'
+                : 'bg-gray-200/70 text-gray-600'
+                } hover:opacity-80 transition-opacity backdrop-blur-sm`}
+              title={`Leader line direction: ${leaderDirection.toUpperCase()}`}
+            >
+              {leaderDirection === 'ltr' ? '⇨' : '⇦'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleDebugMode(); }}
+              className={`p-2 rounded-full ${isDarkMode
+                ? isDebugMode ? 'bg-indigo-600 text-white' : 'bg-gray-800/70 text-gray-400'
+                : isDebugMode ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200/70 text-gray-600'
+                } hover:opacity-80 transition-opacity backdrop-blur-sm`}
+              title="Toggle debug logging"
+            >
+              🐛
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleDarkMode(); }}
+              className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800/70 text-yellow-400' : 'bg-gray-200/70 text-gray-600'
+                } hover:opacity-80 transition-opacity backdrop-blur-sm`}
+              title="Toggle dark mode"
+            >
+              {isDarkMode ? '☀️' : '🌙'}
+            </button>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {canInstall && (
-          <button
-            onClick={promptInstall}
-            className={`mt-2 block ${isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
-              }`}
+      {/* PWA Updates */}
+      <AnimatePresence>
+        {showControls && (isUpdateAvailable || canInstall) && (
+          <motion.div
+            className="absolute bottom-4 left-4 z-20 space-y-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
           >
-            Install App
-          </button>
+            {isUpdateAvailable && (
+              <button
+                onClick={(e) => { e.stopPropagation(); updateServiceWorker(); }}
+                className="px-4 py-2 rounded-lg backdrop-blur-sm bg-indigo-500/50 text-white hover:bg-indigo-600/50"
+              >
+                Update available! Click to refresh
+              </button>
+            )}
+            {canInstall && (
+              <button
+                onClick={(e) => { e.stopPropagation(); promptInstall(); }}
+                className="px-4 py-2 rounded-lg backdrop-blur-sm bg-indigo-500/50 text-white hover:bg-indigo-600/50"
+              >
+                Install App
+              </button>
+            )}
+          </motion.div>
         )}
-      </footer>
+      </AnimatePresence>
     </div>
   );
 }

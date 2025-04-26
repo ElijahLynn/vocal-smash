@@ -4,6 +4,47 @@ Get fast, visual, useful feedback on hitting your notes with Vocal Smash!
 
 Vocal Smash is a nifty singing app for serious singers and vocalists! It provides real-time pitch detection and visualization to help you improve your singing accuracy.
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Audio ["Audio Processing"]
+        M[Microphone] --> WAA[Web Audio API]
+        WAA --> PD[PitchDetector]
+        PD --> |Uses| Pitchy[Pitchy.js Library]
+    end
+
+    subgraph State ["State Management"]
+        Z[Zustand Store] --> |Updates| UI
+        PD --> |Pitch Data| Z
+    end
+
+    subgraph UI ["User Interface"]
+        App[App.tsx] --> SD[SpectrogramDisplay]
+        App --> VM[VolumeMeter]
+        App --> CTC[ClarityThresholdControl]
+        SD --> |Visualizes| PitchData
+        VM --> |Shows| Volume
+        CTC --> |Controls| Threshold
+    end
+
+    subgraph Debug ["Debug Features"]
+        DB[Debug Mode] --> |Enables| VM
+        DB --> |Enables| CTC
+        DB --> |Enables| Logging
+    end
+
+    classDef core fill:#f9f,stroke:#333,stroke-width:2px
+    classDef ui fill:#bbf,stroke:#333,stroke-width:1px
+    classDef audio fill:#bfb,stroke:#333,stroke-width:1px
+    classDef state fill:#fbb,stroke:#333,stroke-width:1px
+
+    class PD,Pitchy audio
+    class Z state
+    class App,SD,VM,CTC ui
+    class WAA,M core
+```
+
 ## Features
 
 - **Real-time Pitch Detection**: Sub-100ms latency for instant feedback
@@ -86,7 +127,7 @@ npm run test:e2e
 
 - Built with React, TypeScript, and Vite
 - Uses Web Audio API for real-time audio processing
-- Implements autocorrelation-based pitch detection
+- Uses Pitchy.js for accurate pitch detection
 - Styled with Tailwind CSS
 - Animations powered by Framer Motion
 - State management with Zustand
