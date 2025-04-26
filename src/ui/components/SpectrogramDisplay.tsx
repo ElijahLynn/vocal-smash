@@ -9,8 +9,8 @@ interface SpectrogramDisplayProps {
     isDarkMode: boolean;
 }
 
-const CANVAS_HEIGHT = 400;
-const CANVAS_WIDTH = 800;
+const CANVAS_WIDTH = window.innerWidth;
+const CANVAS_HEIGHT = window.innerHeight;
 const MIN_DB = -70;
 const MAX_DB = -20;
 const NOISE_FLOOR = -60;
@@ -113,47 +113,65 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
         }
     }, [isRecording, leaderDirection, leaderSpeed]);
 
-    // Initialize canvas
+    // Add resize handler
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        const handleResize = () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-        const ctx = canvas.getContext('2d', {
-            alpha: false,
-            willReadFrequently: true
-        });
-        if (!ctx) return;
+            // Update canvas dimensions
+            canvas.width = window.innerWidth * 2;  // 2x for HD
+            canvas.height = window.innerHeight * 2;
 
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
-        ctx.fillStyle = isDarkMode ? '#111827' : '#F9FAFB';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const ctx = canvas.getContext('2d', {
+                alpha: false,
+                willReadFrequently: true
+            });
+            if (!ctx) return;
 
-        // Draw the initial note lines
-        NOTE_FREQUENCIES.forEach(({ note, freq }) => {
-            const y = freqToY(freq, canvas.height);
+            // Reset scale and apply HD scaling
+            ctx.scale(2, 2);
 
-            // Draw note labels on both sides
-            ctx.fillStyle = isDarkMode ? '#ffffff80' : '#00000080';
-            ctx.font = '12px monospace';
+            // Redraw background
+            ctx.fillStyle = isDarkMode ? '#111827' : '#F9FAFB';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
-            // Left side
-            ctx.textAlign = 'left';
-            ctx.fillText(note, 5, y + 4);
+            // Enable text anti-aliasing
+            ctx.textBaseline = 'middle';
+            ctx.textRendering = 'optimizeLegibility';
 
-            // Right side
-            ctx.textAlign = 'right';
-            ctx.fillText(note, canvas.width - 5, y + 4);
+            // Redraw note lines
+            NOTE_FREQUENCIES.forEach(({ note, freq }) => {
+                const y = freqToY(freq, window.innerHeight);
 
-            // Draw single horizontal line
-            ctx.fillStyle = isDarkMode ? '#ffffff20' : '#00000020';
-            ctx.fillRect(25, y, canvas.width - 50, 1);
-        });
+                ctx.fillStyle = isDarkMode ? '#ffffff80' : '#00000080';
+                ctx.font = '12px "SF Mono", Monaco, Menlo, Consolas, monospace';
 
-        // Store the background with lines
-        imageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                // Left side
+                ctx.textAlign = 'left';
+                ctx.fillText(note, 5, y);
+
+                // Right side
+                ctx.textAlign = 'right';
+                ctx.fillText(note, window.innerWidth - 5, y);
+
+                // Draw line
+                ctx.fillStyle = isDarkMode ? '#ffffff20' : '#00000020';
+                ctx.fillRect(25, Math.floor(y), window.innerWidth - 50, 1);
+            });
+
+            // Store new background
+            imageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        };
+
+        // Initial setup
+        handleResize();
+
+        // Add resize listener
+        window.addEventListener('resize', handleResize);
 
         return () => {
+            window.removeEventListener('resize', handleResize);
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
@@ -288,27 +306,33 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
     }, [isRecording, isDarkMode, pitchData, x, leaderDirection]);
 
     return (
-        <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden">
+        <div className="fixed inset-0 w-screen h-screen overflow-hidden">
             <canvas
                 ref={canvasRef}
                 className="w-full h-full"
-                style={{ imageRendering: 'pixelated' }}
+                style={{
+                    imageRendering: 'auto'
+                }}
             />
             {!isRecording && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-mono">
                     Click Start to begin
                 </div>
             )}
             {isRecording && pitchData?.note && (
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-black bg-opacity-50 text-white font-mono backdrop-blur-sm">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl bg-black/50 text-white font-mono backdrop-blur-sm">
                     <div className="flex flex-col items-center">
-                        <span className={`text-3xl font-bold tracking-wider ${Math.abs(pitchData.cents) <= 5 ? 'text-green-400' : pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'}`}>
+                        <span className={`text-4xl font-bold tracking-wider ${Math.abs(pitchData.cents) <= 5 ? 'text-green-400' :
+                                pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'
+                            }`}>
                             {pitchData.note}{pitchData.octave}
                         </span>
-                        <span className="text-sm opacity-75">
+                        <span className="text-lg mt-1">
                             {Math.round(pitchData.frequency)}Hz
                             {pitchData.cents !== 0 && (
-                                <span className={pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'}>
+                                <span className={
+                                    pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'
+                                }>
                                     {` (${pitchData.cents > 0 ? '+' : ''}${pitchData.cents}¢)`}
                                 </span>
                             )}
