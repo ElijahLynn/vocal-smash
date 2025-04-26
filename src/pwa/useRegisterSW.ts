@@ -20,6 +20,7 @@ export function useRegisterSW() {
     const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
     const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+    const [canInstall, setCanInstall] = useState(false);
 
     useEffect(() => {
         if (
@@ -52,6 +53,7 @@ export function useRegisterSW() {
         const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
             e.preventDefault();
             setInstallPrompt(e);
+            setCanInstall(true);
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -85,6 +87,7 @@ export function useRegisterSW() {
             const result = await installPrompt.userChoice;
             if (result.outcome === 'accepted') {
                 setInstallPrompt(null);
+                setCanInstall(false);
             }
         } catch (error) {
             console.error('Failed to prompt for install:', error);
@@ -94,7 +97,8 @@ export function useRegisterSW() {
     return {
         isUpdateAvailable,
         updateServiceWorker,
-        canInstall: !!installPrompt,
+        canInstall,
+        setCanInstall,
         promptInstall,
     };
 }

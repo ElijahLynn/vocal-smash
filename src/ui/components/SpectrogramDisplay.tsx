@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { PitchDetectionResult } from '../../audio/PitchDetector';
 import { useStore } from '../store/useStore';
@@ -77,9 +77,53 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number>();
     const imageDataRef = useRef<ImageData | null>(null);
-    const { leaderDirection, leaderSpeed } = useStore();
+    const lastPitchRef = useRef<{ note: string; octave: number; frequency: number; cents: number } | null>(null);
+    const lastUpdateTimeRef = useRef<number>(0);
+    const { leaderDirection, leaderSpeed, noteRefreshRate } = useStore();
     const x = useMotionValue(0);
     const y = useMotionValue(CANVAS_HEIGHT / 2);
+
+    // Smoothed pitch state
+    const [smoothedPitch, setSmoothedPitch] = useState<{
+        note: string;
+        octave: number;
+        frequency: number;
+        cents: number;
+    } | null>(null);
+
+    // Update smoothed pitch with configurable refresh rate
+    useEffect(() => {
+        if (!pitchData?.note) {
+            setSmoothedPitch(null);
+            lastPitchRef.current = null;
+            return;
+        }
+
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+
+        // If we have a significant change or enough time has passed
+        if (!lastPitchRef.current ||
+            timeSinceLastUpdate > noteRefreshRate ||
+            Math.abs(pitchData.frequency - lastPitchRef.current.frequency) > 5 ||
+            pitchData.note !== lastPitchRef.current.note) {
+
+            setSmoothedPitch({
+                note: pitchData.note,
+                octave: pitchData.octave,
+                frequency: pitchData.frequency,
+                cents: pitchData.cents
+            });
+
+            lastPitchRef.current = {
+                note: pitchData.note,
+                octave: pitchData.octave,
+                frequency: pitchData.frequency,
+                cents: pitchData.cents
+            };
+            lastUpdateTimeRef.current = now;
+        }
+    }, [pitchData, noteRefreshRate]);
 
     // Update y position based on pitch
     useEffect(() => {
@@ -319,21 +363,21 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                     Click Start to begin
                 </div>
             )}
-            {isRecording && pitchData?.note && (
+            {isRecording && smoothedPitch && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl bg-black/50 text-white font-mono backdrop-blur-sm">
                     <div className="flex flex-col items-center">
-                        <span className={`text-4xl font-bold tracking-wider ${Math.abs(pitchData.cents) <= 5 ? 'text-green-400' :
-                                pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'
+                        <span className={`text-4xl font-bold tracking-wider ${Math.abs(smoothedPitch.cents) <= 5 ? 'text-green-400' :
+                            smoothedPitch.cents > 0 ? 'text-red-400' : 'text-blue-400'
                             }`}>
-                            {pitchData.note}{pitchData.octave}
+                            {smoothedPitch.note}{smoothedPitch.octave}
                         </span>
                         <span className="text-lg mt-1">
-                            {Math.round(pitchData.frequency)}Hz
-                            {pitchData.cents !== 0 && (
+                            {Math.round(smoothedPitch.frequency)}Hz
+                            {smoothedPitch.cents !== 0 && (
                                 <span className={
-                                    pitchData.cents > 0 ? 'text-red-400' : 'text-blue-400'
+                                    smoothedPitch.cents > 0 ? 'text-red-400' : 'text-blue-400'
                                 }>
-                                    {` (${pitchData.cents > 0 ? '+' : ''}${pitchData.cents}¢)`}
+                                    {` (${smoothedPitch.cents > 0 ? '+' : ''}${smoothedPitch.cents}¢)`}
                                 </span>
                             )}
                         </span>

@@ -1,5 +1,8 @@
 import { useStore } from '../../store/store';
 import { motion } from 'framer-motion';
+import { LeaderDirectionControl } from './LeaderDirectionControl';
+import { LeaderSpeedControl } from './LeaderSpeedControl';
+import { NoteRefreshControl } from './NoteRefreshControl';
 
 interface SettingsPanelProps {
     onClose: () => void;
@@ -67,6 +70,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                         <option value="rtl">Right to Left</option>
                     </select>
                 </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+                <LeaderDirectionControl />
+                <LeaderSpeedControl />
+                <NoteRefreshControl />
             </div>
         </motion.div>
     );

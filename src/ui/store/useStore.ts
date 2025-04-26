@@ -3,48 +3,44 @@ import { PitchDetectionResult } from '../../audio/PitchDetector';
 
 interface AppState {
     isRecording: boolean;
-    pitchData: PitchDetectionResult | null;
-    error: string | null;
-    clarityThreshold: number;
-    leaderDirection: 'ltr' | 'rtl';
     setIsRecording: (isRecording: boolean) => void;
+    pitchData: PitchDetectionResult | null;
     setPitchData: (data: PitchDetectionResult | null) => void;
+    error: string | null;
     setError: (error: string | null) => void;
+    clarityThreshold: number;
     setClarityThreshold: (threshold: number) => void;
+    leaderDirection: 'ltr' | 'rtl';
     setLeaderDirection: (direction: 'ltr' | 'rtl') => void;
     history: PitchDetectionResult[];
     addToHistory: (data: PitchDetectionResult) => void;
     clearHistory: () => void;
+    isDarkMode: boolean;
+    toggleDarkMode: () => void;
+    leaderSpeed: number;
+    setLeaderSpeed: (speed: number) => void;
+    noteRefreshRate: number;
+    setNoteRefreshRate: (rate: number) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
     isRecording: false,
-    pitchData: null,
-    error: null,
-    clarityThreshold: 0.8,
-    leaderDirection: 'ltr',
-    history: [],
     setIsRecording: (isRecording) => set({ isRecording }),
-    setPitchData: (data) => {
-        set((state) => {
-            if (data && (!state.pitchData ||
-                data.note !== state.pitchData.note ||
-                data.octave !== state.pitchData.octave ||
-                Math.abs(data.cents - state.pitchData.cents) > 5)) {
-                return {
-                    pitchData: data,
-                    history: [...state.history.slice(-99), data],
-                };
-            }
-            return { pitchData: state.pitchData };
-        });
-    },
+    pitchData: null,
+    setPitchData: (data) => set({ pitchData: data }),
+    error: null,
     setError: (error) => set({ error }),
+    clarityThreshold: 0.8,
     setClarityThreshold: (threshold) => set({ clarityThreshold: threshold }),
+    leaderDirection: 'ltr',
     setLeaderDirection: (direction) => set({ leaderDirection: direction }),
-    addToHistory: (data) =>
-        set((state) => ({
-            history: [...state.history.slice(-99), data]
-        })),
+    history: [],
+    addToHistory: (data) => set((state) => ({ history: [...state.history, data] })),
     clearHistory: () => set({ history: [] }),
+    isDarkMode: true,
+    toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+    leaderSpeed: 1,
+    setLeaderSpeed: (speed) => set({ leaderSpeed: speed }),
+    noteRefreshRate: 100,  // Default 100ms refresh rate
+    setNoteRefreshRate: (rate) => set({ noteRefreshRate: rate }),
 }));
