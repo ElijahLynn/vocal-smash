@@ -36,8 +36,8 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
                     >
                         <div className="text-6xl font-bold mb-4">
                             <span className={`${getPitchColor()} ${isAccidental
-                                    ? isDarkMode ? 'text-gray-400' : 'text-accidental-primary'
-                                    : isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
+                                ? isDarkMode ? 'text-gray-400' : 'text-accidental-primary'
+                                : isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
                                 }`}>
                                 {pitchData.note}
                                 <sub className="text-3xl">{pitchData.octave}</sub>
@@ -74,14 +74,31 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className={isDarkMode ? 'text-gray-400' : 'text-gray-400'}
+                    className={`text-xl ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}
                 >
                     Listening...
+                    <div className="mt-4 flex gap-1">
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="w-2 h-2 rounded-full bg-indigo-400"
+                        />
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }}
+                            className="w-2 h-2 rounded-full bg-indigo-400"
+                        />
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }}
+                            className="w-2 h-2 rounded-full bg-indigo-400"
+                        />
+                    </div>
                 </motion.div>
             )}
 
             {!isRecording && (
-                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-400'}>
+                <div className={`text-xl ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}>
                     Press Start to begin
                 </div>
             )}

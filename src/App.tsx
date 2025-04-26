@@ -50,8 +50,16 @@ function App() {
 
   useEffect(() => {
     if (!detectorRef.current) {
+      console.log('Creating new PitchDetector');
       detectorRef.current = new PitchDetector();
     }
+
+    return () => {
+      if (detectorRef.current) {
+        console.log('Cleaning up PitchDetector');
+        detectorRef.current.stop();
+      }
+    };
   }, []);
 
   const startRecording = async () => {
@@ -61,53 +69,100 @@ function App() {
     }
 
     try {
+      console.log('Starting audio context...');
       await detectorRef.current?.start();
+      console.log('Audio context started');
+
+      // Set recording state first
       setIsRecording(true);
       setError(null);
 
+      // Create a ref to track if we're still recording
+      const isRecordingRef = { current: true };
+
       const updatePitch = () => {
-        if (detectorRef.current && isRecording) {
-          const result = detectorRef.current.analyze();
+        if (!detectorRef.current || !isRecordingRef.current) {
+          console.log('Recording stopped or no detector');
+          return;
+        }
+
+        console.log('Update loop running');
+        const result = detectorRef.current.analyze();
+        if (result) {
+          console.log('Setting pitch data:', result);
           setPitchData(result);
+        }
+
+        // Use the ref instead of the state
+        if (isRecordingRef.current) {
           animationFrameRef.current = requestAnimationFrame(updatePitch);
+        } else {
+          console.log('Recording stopped, ending loop');
         }
       };
 
+      console.log('Starting pitch detection loop');
       animationFrameRef.current = requestAnimationFrame(updatePitch);
+
+      // Update the cleanup function
+      return () => {
+        isRecordingRef.current = false;
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
     } catch (err) {
       console.error('Failed to start recording:', err);
       setError('Failed to start recording. Please check your microphone.');
+      setIsRecording(false);
     }
   };
 
   const stopRecording = () => {
+    console.log('Stopping recording...');
+    setIsRecording(false);
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = undefined;
     }
+
     detectorRef.current?.stop();
-    setIsRecording(false);
     setPitchData(null);
+    console.log('Recording stopped');
   };
+
+  // Add effect to handle recording state changes
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+
+    if (isRecording) {
+      const setupRecording = async () => {
+        cleanup = await startRecording();
+      };
+      setupRecording();
+    }
+
+    return () => {
+      cleanup?.();
+    };
+  }, [isRecording]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 ${
-      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'
-    }`}>
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'
+      }`}>
       <header className="mb-8 text-center relative w-full">
-        <h1 className={`text-4xl font-bold ${
-          isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
-        }`}>Vocal Smash</h1>
-        <p className={`mt-2 ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}>Real-time pitch detection</p>
+        <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
+          }`}>Vocal Smash</h1>
+        <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>Real-time pitch detection</p>
 
         <button
           onClick={toggleDarkMode}
-          className={`absolute right-4 top-0 p-2 rounded-full ${
-            isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-200 text-gray-600'
-          } hover:opacity-80 transition-opacity`}
+          className={`absolute right-4 top-0 p-2 rounded-full ${isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-200 text-gray-600'
+            } hover:opacity-80 transition-opacity`}
         >
           {isDarkMode ? '☀️' : '🌙'}
         </button>
@@ -142,9 +197,8 @@ function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={clearHistory}
-              className={`px-8 py-3 rounded-full font-semibold ${
-                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`px-8 py-3 rounded-full font-semibold ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               Clear History
             </motion.button>
@@ -157,9 +211,8 @@ function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`mt-4 p-4 rounded-lg text-center ${
-                isDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
-              }`}
+              className={`mt-4 p-4 rounded-lg text-center ${isDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+                }`}
             >
               {error || permissionError}
             </motion.div>
@@ -167,17 +220,15 @@ function App() {
         </AnimatePresence>
       </main>
 
-      <footer className={`mt-auto py-4 text-sm text-center ${
-        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-      }`}>
+      <footer className={`mt-auto py-4 text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
         <p>Built with ❤️ for singers</p>
 
         {isUpdateAvailable && (
           <button
             onClick={updateServiceWorker}
-            className={`mt-2 ${
-              isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
-            }`}
+            className={`mt-2 ${isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
+              }`}
           >
             Update available! Click to refresh
           </button>
@@ -186,9 +237,8 @@ function App() {
         {canInstall && (
           <button
             onClick={promptInstall}
-            className={`mt-2 block ${
-              isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
-            }`}
+            className={`mt-2 block ${isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
+              }`}
           >
             Install App
           </button>

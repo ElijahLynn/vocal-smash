@@ -32,9 +32,13 @@ export class PitchDetector {
     }
 
     async start(): Promise<void> {
-        if (this.isRunning) return;
+        if (this.isRunning) {
+            console.log('Already running');
+            return;
+        }
 
         try {
+            console.log('Requesting microphone access...');
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: false,
@@ -42,11 +46,19 @@ export class PitchDetector {
                     autoGainControl: false,
                 },
             });
+            console.log('Microphone access granted');
 
-            if (!this.audioContext) {
+            if (!this.audioContext || this.audioContext.state === 'closed') {
+                console.log('Initializing audio context...');
                 await this.initializeAudioContext();
             }
 
+            if (this.audioContext?.state === 'suspended') {
+                console.log('Resuming audio context...');
+                await this.audioContext.resume();
+            }
+
+            console.log('Creating audio nodes...');
             this.source = this.audioContext!.createMediaStreamSource(this.mediaStream);
             this.analyser = this.audioContext!.createAnalyser();
             this.analyser.fftSize = this.bufferSize;
@@ -54,60 +66,99 @@ export class PitchDetector {
 
             this.source.connect(this.analyser);
             this.isRunning = true;
+            console.log('Pitch detector started successfully');
         } catch (error) {
             console.error('Failed to start audio capture:', error);
+            this.stop();
             throw error;
         }
     }
 
     stop(): void {
-        if (!this.isRunning) return;
+        console.log('Stopping pitch detector...');
+        if (!this.isRunning) {
+            console.log('Already stopped');
+            return;
+        }
 
-        this.mediaStream?.getTracks().forEach(track => track.stop());
+        this.mediaStream?.getTracks().forEach(track => {
+            console.log('Stopping audio track:', track.label);
+            track.stop();
+        });
         this.source?.disconnect();
         this.analyser?.disconnect();
         this.isRunning = false;
+        console.log('Pitch detector stopped');
     }
 
     analyze(): PitchDetectionResult | null {
-        if (!this.isRunning || !this.analyser) return null;
+        if (!this.isRunning || !this.analyser) {
+            console.log('Cannot analyze: detector not running');
+            return null;
+        }
 
         const buffer = new Float32Array(this.analyser.frequencyBinCount);
         this.analyser.getFloatTimeDomainData(buffer);
 
+        // Debug: Log buffer stats
+        const rms = Math.sqrt(buffer.reduce((acc, val) => acc + val * val, 0) / buffer.length);
+        console.log('Buffer RMS:', rms.toFixed(4));
+
         const result = this.detectPitch(buffer);
-        if (!result) return null;
+        if (!result) {
+            return null;
+        }
+
+        console.log('Raw frequency:', result.frequency.toFixed(1), 'Hz, Confidence:', result.confidence.toFixed(3));
+        const noteResult = this.frequencyToNote(result.frequency);
+        console.log('Note:', noteResult.note + noteResult.octave, 'Cents:', noteResult.cents);
 
         return {
             ...result,
-            ...this.frequencyToNote(result.frequency),
+            ...noteResult,
         };
     }
 
     private detectPitch(buffer: Float32Array): { frequency: number; confidence: number } | null {
-        // Implement autocorrelation-based pitch detection
+        // Check if there's enough signal
+        const rms = Math.sqrt(buffer.reduce((acc, val) => acc + val * val, 0) / buffer.length);
+        if (rms < 0.01) {
+            console.log('Signal too weak, RMS:', rms);
+            return null;
+        }
+
         const correlations = new Float32Array(buffer.length / 2);
         let maxCorrelation = 0;
-        let maxLag = 0;
+        let bestLag = 0;
 
-        for (let lag = 0; lag < correlations.length; lag++) {
+        // Find the first peak after the first few samples
+        const minLag = Math.floor(this.sampleRate / 1100); // Highest expected frequency
+        const maxLag = Math.floor(this.sampleRate / 80);   // Lowest expected frequency
+
+        for (let lag = minLag; lag < maxLag; lag++) {
             let correlation = 0;
+            let norm = 0;
+
             for (let i = 0; i < correlations.length; i++) {
                 correlation += buffer[i] * buffer[i + lag];
+                norm += buffer[i] * buffer[i] + buffer[i + lag] * buffer[i + lag];
             }
+
+            correlation = correlation / Math.sqrt(norm / 2);
             correlations[lag] = correlation;
 
             if (correlation > maxCorrelation) {
                 maxCorrelation = correlation;
-                maxLag = lag;
+                bestLag = lag;
             }
         }
 
-        const frequency = this.sampleRate / maxLag;
-        const confidence = maxCorrelation / correlations[0];
+        const frequency = this.sampleRate / bestLag;
+        const confidence = maxCorrelation;
 
         // Filter out unreliable results - adjusted for human vocal range
-        if (frequency < 80 || frequency > 1100 || confidence < 0.3) { // Human vocal range: ~80Hz (E2) to ~1100Hz (C6)
+        if (frequency < 80 || frequency > 1100 || confidence < 0.15) {
+            console.log('Rejected result:', { frequency, confidence });
             return null;
         }
 
