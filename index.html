@@ -1,66 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vocal Smash</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-    <div class="container">
-        <h1>Vocal Smash</h1>
-
-        <div class="visualizer-container">
-            <showcqt-element id="visualizer" width="100%" height="100%"></showcqt-element>
-            <audio id="microphone" style="display: none;"></audio>
-
-            <div class="settings-panel">
-                <div class="settings-group">
-                    <label>Waterfall Height
-                        <input type="range" id="waterfallHeight" min="0" max="100" value="20">
-                        <span class="value-display">20%</span>
-                    </label>
-                </div>
-                <div class="settings-group">
-                    <label>Waterfall Speed
-                        <input type="range" id="waterfallSpeed" min="1" max="12" value="4">
-                        <span class="value-display">4x</span>
-                    </label>
-                </div>
-                <div class="settings-group">
-                    <label>Vertical Scale
-                        <input type="range" id="scaleY" min="30" max="100" value="100">
-                        <span class="value-display">100%</span>
-                    </label>
-                </div>
-                <div class="settings-group">
-                    <label>Preset Effects</label>
-                    <select id="presetEffect">
-                        <option value="minimal" selected>Minimal</option>
-                        <option value="matrix">Matrix Style</option>
-                        <option value="smooth">Smooth Flow</option>
-                        <option value="reactive">Reactive</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="button-group">
-            <button class="start-button" id="startButton">Start Listening</button>
-            <div class="volume-meter">
-                <div class="volume-meter-fill" id="volumeMeterFill"></div>
-                <div class="volume-meter-text" id="volumeMeterText">-∞ dB</div>
-            </div>
-            <button class="stop-button" id="stopButton" disabled>Stop</button>
-        </div>
-    </div>
-
-    <script type="module">
-        import { ShowCQTElement } from './showcqt-element/showcqt-element.mjs';
-        import './app.js';
-    </script>
-</body>
-
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

@@ -2,50 +2,41 @@
 
 Get fast, visual, useful feedback on hitting your notes with Vocal Smash!
 
-Vocal Smash is a nifty singing app for serious singers and vocalists!
+Vocal Smash is a nifty singing app for serious singers and vocalists! It provides real-time pitch detection and visualization to help you improve your singing accuracy.
 
-Vocal Smash is based on scientific research in the book Peak. One of the premises in the book is that the closer you get to instant feedback, then the more feedback cycles you can do in a given time, and this causes all types and ages of people to self-learn at a faster pace, just by observing if they did it right or not. People have the ability to self-learn if they get fast enough feedback.
+## Features
 
-## Features:
+- **Real-time Pitch Detection**: Sub-100ms latency for instant feedback
+- **Visual Feedback**: Beautiful, intuitive display of your current note and pitch accuracy
+- **Progressive Web App**: Install and use on any device with a browser
+- **Offline Support**: Practice anywhere, even without an internet connection
+- **Modern UI**: Smooth animations and responsive design
+- **Cross-Platform**: Works on desktop and mobile browsers
 
-**MVP:**
-* Pinch to zoom in on your range.
-* Tap to freeze and unfreeze: Sometimes you just want to sing a short riff then see how you did.
+## Project Structure
 
-
-### Roadmap:
-* Progressive Web App: Installable on any device with a browser.
-* Android App: I think Play Store has native support for PWAs.
-* iOS App: Depends on if I can submit a PWA to the App Store.
-
-
-**Post-MVP:**
-
-* Game: Compete with others and yourself with your "Smash Score". Others can upload their accapella recordings and you can compete against others for the best smash score which is based on how well you match the recording.
-* Gestures: Swipe away or towards the animation flow direction to slow down or speed up the visualization flow.
-
-
-* Grid: A light grid to give feedback on what note is being targeted when it is farther away from the source number row.
-
-* TBD: Possibly add a number row at the end for a sandwhich effect too
-
-* Visual: Put real sharps or flats in the gap between the whole notes.
-
-* Resolution: Don't really want to expose this feature. If requested a lot, then I will, but I think the elegance of this app is also going to be in the settings and the interaction too.
-
-* Color scheme: Adjust color schemes. This is way in the future, if I do it.
-
-
-I built the ultimate singing feedback tool for myself and think others will love it too. Check the video out!
-
-My name is Elijah Lynn and I am an open source software engineer. I've been teaching myself how to sing and have been looking for a tool to give me pitch feedback quickly. I haven't found what I have been looking for and I came across the open source project [YouTube Musical Spectrum](https://github.com/mfcc64/youtube-musical-spectrum) by Muhammad Faiz based on the showcqt.js library, also created by Muhammad.
+```
+vocal-smash/
+├── src/
+│   ├── audio/           # Audio processing and pitch detection
+│   ├── ui/             # React components and hooks
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── store/
+│   └── pwa/            # PWA configuration and service worker
+├── tests/
+│   ├── unit/          # Unit tests
+│   ├── integration/   # Integration tests
+│   └── e2e/           # End-to-end tests with Playwright
+└── public/
+    └── icons/         # App icons for PWA
+```
 
 ## Getting Started
 
 ### Prerequisites
-- asdf version manager (recommended for managing Node.js versions)
-- Node.js (v18 or higher recommended, latest is v23.7.0)
-- OpenSSL (for generating SSL certificates)
+- Node.js (v18 or higher recommended)
+- npm (v9 or higher)
 
 ### Local Development Setup
 
@@ -55,58 +46,63 @@ git clone https://github.com/yourusername/vocal-smash.git
 cd vocal-smash
 ```
 
-2. Install Node.js using asdf:
+2. Install dependencies:
 ```bash
-# Install the Node.js plugin if you haven't already
-asdf plugin add nodejs
-
-# Install the latest stable version of Node.js
-asdf install nodejs latest
-
-# Set Node.js version for this project
-asdf set nodejs latest
-```
-
-3. Install dependencies:
-```bash
-# Install project dependencies
 npm install
 ```
 
-4. Generate SSL certificates (required for external network access):
+3. Start the development server:
 ```bash
-mkdir -p certs
-openssl req -x509 -newkey rsa:4096 -keyout certs/private.key -out certs/certificate.pem -days 365 -nodes
+npm run dev
 ```
 
-5. Start the development server:
+The application will be available at `http://localhost:5173`
+
+### Building for Production
+
 ```bash
-# Start the secure HTTPS server (required for external network access)
-npm start
+npm run build
 ```
 
-The application will be available at:
-- HTTPS: https://localhost:3000 (when using `npm start`)
-- You can also access it from other devices on your local network using your computer's IP address (e.g., https://192.168.1.100:3000)
+The production build will be available in the `dist` directory.
 
-### Development Notes
-- The secure HTTPS server is required to access the application from other devices on your local network
-- The build process uses esbuild to bundle the application
-- The application uses modern web components and ES modules
-- When accessing from other devices, you'll need to accept the self-signed certificate warning in your browser
+### Running Tests
 
-### Fish Shell Configuration
-If you're using fish shell, add this to your `~/.config/fish/config.fish`:
-```fish
-## asdf support
-if test -z $ASDF_DATA_DIR
-    set _asdf_shims "$HOME/.asdf/shims"
-else
-    set _asdf_shims "$ASDF_DATA_DIR/shims"
-end
+```bash
+# Run unit tests
+npm test
 
-if not contains $_asdf_shims $PATH
-    set -gx --prepend PATH $_asdf_shims
-end
-set --erase _asdf_shims
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run end-to-end tests
+npm run test:e2e
 ```
+
+## Technical Details
+
+- Built with React, TypeScript, and Vite
+- Uses Web Audio API for real-time audio processing
+- Implements autocorrelation-based pitch detection
+- Styled with Tailwind CSS
+- Animations powered by Framer Motion
+- State management with Zustand
+- PWA support with Workbox
+- Testing with Jest and Playwright
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built with ❤️ for singers
+- Based on scientific research in the book Peak about deliberate practice and instant feedback
+- Special thanks to the Web Audio API and React communities

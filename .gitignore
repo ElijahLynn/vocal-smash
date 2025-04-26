@@ -1,53 +1,24 @@
-# Dependencies
-node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
-# Build outputs
-dist/
-build/
-*.min.js
-*.min.css
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# asdf/npm
-.tool-versions
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Debug logs
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-debug.log
+pnpm-debug.log*
+lerna-debug.log*
 
-# Optional: Test coverage directory
-coverage/
+node_modules
+dist
+dist-ssr
+*.local
 
-# Optional: Temporary files
-tmp/
-temp/
-
-# Optional: Local development SSL certificates
-*.pem
-*.key
-*.crt
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
