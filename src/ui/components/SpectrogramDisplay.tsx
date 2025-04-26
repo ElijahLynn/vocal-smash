@@ -16,6 +16,23 @@ const MAX_DB = -20;
 const NOISE_FLOOR = -60;
 const COLUMN_WIDTH = 4;
 
+// Helper function to convert frequency to y-position
+function freqToY(freq: number, height: number, range: { min: number; max: number }): number {
+    const minFreq = range.min;
+    const maxFreq = range.max;
+    const normalized = Math.log2(freq / minFreq) / Math.log2(maxFreq / minFreq);
+    return Math.round(height - (normalized * height));
+}
+
+// Helper function to get note range
+function getNoteRange(centerNote: string, centerOctave: number): { min: number; max: number } {
+    const noteFreq = NOTE_FREQUENCIES.find(n => n.note === `${centerNote}${centerOctave}`)?.freq || 440;
+    return {
+        min: noteFreq / Math.pow(2, 0.75), // Down 0.75 octaves
+        max: noteFreq * Math.pow(2, 0.75)  // Up 0.75 octaves
+    };
+}
+
 // Define main musical notes and their frequencies (from high to low)
 const NOTE_FREQUENCIES = [
     { note: 'C6', freq: 1046.50 },
@@ -65,14 +82,6 @@ const NOTE_FREQUENCIES = [
     { note: 'E2', freq: 82.41 }
 ];
 
-// Helper function to convert frequency to y-position
-function freqToY(freq: number, height: number): number {
-    const minFreq = 75;  // Slightly below E2
-    const maxFreq = 1100; // Slightly above C6
-    const normalized = Math.log2(freq / minFreq) / Math.log2(maxFreq / minFreq);
-    return Math.round(height - (normalized * height));
-}
-
 export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: SpectrogramDisplayProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number>();
@@ -82,6 +91,17 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
     const { leaderDirection, leaderSpeed, noteRefreshRate } = useStore();
     const x = useMotionValue(0);
     const y = useMotionValue(CANVAS_HEIGHT / 2);
+    const [firstNote, setFirstNote] = useState<{ note: string; octave: number } | null>(null);
+    const [frequencyRange, setFrequencyRange] = useState<{ min: number; max: number } | null>(null);
+
+    // Update frequency range when first note is detected
+    useEffect(() => {
+        if (!firstNote && pitchData?.note && pitchData.octave) {
+            setFirstNote({ note: pitchData.note, octave: pitchData.octave });
+            const range = getNoteRange(pitchData.note, pitchData.octave);
+            setFrequencyRange(range);
+        }
+    }, [pitchData?.note, pitchData?.octave, firstNote]);
 
     // Smoothed pitch state
     const [smoothedPitch, setSmoothedPitch] = useState<{
@@ -102,7 +122,6 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
         const now = Date.now();
         const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
 
-        // If we have a significant change or enough time has passed
         if (!lastPitchRef.current ||
             timeSinceLastUpdate > noteRefreshRate ||
             Math.abs(pitchData.frequency - lastPitchRef.current.frequency) > 5 ||
@@ -127,15 +146,12 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
 
     // Update y position based on pitch
     useEffect(() => {
-        if (pitchData?.frequency && pitchData?.note) {
-            // Find the exact note frequency from our note table
+        if (pitchData?.frequency && pitchData?.note && frequencyRange) {
             const noteFreq = NOTE_FREQUENCIES.find(
                 n => n.note === `${pitchData.note}${pitchData.octave}`
             )?.freq;
 
-            // If we found the note, use its frequency for positioning
-            // This ensures the line aligns with the note grid
-            const targetY = freqToY(noteFreq || pitchData.frequency, CANVAS_HEIGHT);
+            const targetY = freqToY(noteFreq || pitchData.frequency, CANVAS_HEIGHT, frequencyRange);
 
             animate(y, targetY, {
                 type: "spring",
@@ -143,7 +159,7 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                 damping: 30
             });
         }
-    }, [pitchData?.frequency, pitchData?.note]);
+    }, [pitchData?.frequency, pitchData?.note, frequencyRange]);
 
     // Reset x position and start animation when recording starts
     useEffect(() => {
@@ -163,8 +179,7 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
             const canvas = canvasRef.current;
             if (!canvas) return;
 
-            // Update canvas dimensions
-            canvas.width = window.innerWidth * 2;  // 2x for HD
+            canvas.width = window.innerWidth * 2;
             canvas.height = window.innerHeight * 2;
 
             const ctx = canvas.getContext('2d', {
@@ -173,45 +188,38 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
             });
             if (!ctx) return;
 
-            // Reset scale and apply HD scaling
             ctx.scale(2, 2);
-
-            // Redraw background
-            ctx.fillStyle = isDarkMode ? '#111827' : '#F9FAFB';
+            ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
-            // Enable text anti-aliasing
-            ctx.textBaseline = 'middle';
-            ctx.textRendering = 'optimizeLegibility';
+            if (frequencyRange) {
+                ctx.textBaseline = 'middle';
+                ctx.textRendering = 'optimizeLegibility';
 
-            // Redraw note lines
-            NOTE_FREQUENCIES.forEach(({ note, freq }) => {
-                const y = freqToY(freq, window.innerHeight);
+                // Only draw note lines within the frequency range
+                NOTE_FREQUENCIES.forEach(({ note, freq }) => {
+                    if (freq >= frequencyRange.min && freq <= frequencyRange.max) {
+                        const y = freqToY(freq, window.innerHeight, frequencyRange);
 
-                ctx.fillStyle = isDarkMode ? '#ffffff80' : '#00000080';
-                ctx.font = '12px "SF Mono", Monaco, Menlo, Consolas, monospace';
+                        ctx.fillStyle = '#ffffff80';
+                        ctx.font = '12px "SF Mono", Monaco, Menlo, Consolas, monospace';
 
-                // Left side
-                ctx.textAlign = 'left';
-                ctx.fillText(note, 5, y);
+                        ctx.textAlign = 'left';
+                        ctx.fillText(note, 5, y);
 
-                // Right side
-                ctx.textAlign = 'right';
-                ctx.fillText(note, window.innerWidth - 5, y);
+                        ctx.textAlign = 'right';
+                        ctx.fillText(note, window.innerWidth - 5, y);
 
-                // Draw line
-                ctx.fillStyle = isDarkMode ? '#ffffff20' : '#00000020';
-                ctx.fillRect(25, Math.floor(y), window.innerWidth - 50, 1);
-            });
+                        ctx.fillStyle = '#ffffff40';
+                        ctx.fillRect(25, Math.floor(y), window.innerWidth - 50, 1);
+                    }
+                });
+            }
 
-            // Store new background
             imageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
         };
 
-        // Initial setup
         handleResize();
-
-        // Add resize listener
         window.addEventListener('resize', handleResize);
 
         return () => {
@@ -220,7 +228,7 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [isDarkMode]);
+    }, [isDarkMode, frequencyRange]);
 
     // Handle data updates and rendering
     useEffect(() => {
@@ -245,52 +253,40 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
         if (!ctx || !imageDataRef.current) return;
 
         const render = () => {
-            // Restore background with lines
             ctx.putImageData(imageDataRef.current!, 0, 0);
 
-            // Draw new data if available
-            if (pitchData?.frequencyData) {
+            if (pitchData?.frequencyData && frequencyRange) {
                 const frequencyData = pitchData.frequencyData;
-                const binHeight = canvas.height / (frequencyData.length / 4);
 
-                // Draw frequency data
                 for (let i = 0; i < frequencyData.length / 4; i++) {
                     const value = frequencyData[i];
-
-                    // Skip if below noise floor
                     if (value < NOISE_FLOOR) continue;
 
                     const normalized = (value - MIN_DB) / (MAX_DB - MIN_DB);
                     const intensity = Math.max(0, Math.min(1, normalized));
-
-                    // Only draw if intensity is significant
                     if (intensity < 0.1) continue;
 
-                    // Enhanced purple gradient with better opacity scaling
                     const r = Math.round(intensity * 180);
                     const g = Math.round(intensity * 100);
                     const b = Math.round(intensity * 255);
-                    const a = Math.pow(intensity, 1.5) * 0.8; // More aggressive opacity scaling
+                    const a = Math.pow(intensity, 1.5) * 0.8;
 
                     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
-                    const freq = (i / (frequencyData.length / 4)) * (1100 - 75) + 75;
-                    const yPos = freqToY(freq, canvas.height);
-                    const nextFreq = ((i + 1) / (frequencyData.length / 4)) * (1100 - 75) + 75;
-                    const nextYPos = freqToY(nextFreq, canvas.height);
+                    const freq = (i / (frequencyData.length / 4)) * (frequencyRange.max - frequencyRange.min) + frequencyRange.min;
+                    const yPos = freqToY(freq, canvas.height, frequencyRange);
+                    const nextFreq = ((i + 1) / (frequencyData.length / 4)) * (frequencyRange.max - frequencyRange.min) + frequencyRange.min;
+                    const nextYPos = freqToY(nextFreq, canvas.height, frequencyRange);
                     const height = Math.abs(nextYPos - yPos);
                     ctx.fillRect(0, yPos, canvas.width, height);
                 }
 
-                // Draw current pitch if available
                 if (pitchData.frequency && pitchData.note) {
-                    const y = freqToY(pitchData.frequency, canvas.height);
+                    const y = freqToY(pitchData.frequency, canvas.height, frequencyRange);
                     const clarity = pitchData.clarity || 0;
 
-                    // Draw the trail
                     const leadingX = Math.min(Math.max(0, x.get() || 0), canvas.width);
                     if (Number.isFinite(leadingX)) {
-                        // Draw trail gradient
-                        const trailLength = 150; // Length of the trail
+                        const trailLength = 150;
                         const startX = leaderDirection === 'ltr'
                             ? Math.max(0, leadingX - trailLength)
                             : leadingX;
@@ -298,14 +294,9 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                             ? leadingX
                             : Math.min(canvas.width, leadingX + trailLength);
 
-                        const gradient = ctx.createLinearGradient(
-                            startX,
-                            0,
-                            endX,
-                            0
-                        );
+                        const gradient = ctx.createLinearGradient(startX, 0, endX, 0);
+                        const glowColor = '0, 255, 0';
 
-                        const glowColor = isDarkMode ? '0, 255, 0' : '0, 255, 0';
                         if (leaderDirection === 'ltr') {
                             gradient.addColorStop(0, `rgba(${glowColor}, 0)`);
                             gradient.addColorStop(1, `rgba(${glowColor}, ${clarity * 0.8})`);
@@ -314,11 +305,9 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                             gradient.addColorStop(1, `rgba(${glowColor}, 0)`);
                         }
 
-                        // Draw the trail
                         ctx.fillStyle = gradient;
                         ctx.fillRect(startX, y - 3, endX - startX, 6);
 
-                        // Draw bright point at the leading edge
                         const edgeGlow = ctx.createRadialGradient(
                             leadingX, y, 0,
                             leadingX, y, 10
@@ -334,20 +323,18 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                 }
             }
 
-            // Schedule next frame
+            imageDataRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
             animationFrameRef.current = requestAnimationFrame(render);
         };
 
-        // Start the render loop
         render();
 
-        // Cleanup
         return () => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [isRecording, isDarkMode, pitchData, x, leaderDirection]);
+    }, [isRecording, isDarkMode, pitchData, x, leaderDirection, frequencyRange]);
 
     return (
         <div className="fixed inset-0 w-screen h-screen overflow-hidden">
@@ -395,10 +382,8 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                     }}
                 >
                     <div className={`flex flex-col items-center justify-center ${pitchData?.frequency ? 'opacity-100' : 'opacity-30'}`}>
-                        {/* Leader line */}
                         <div className={`w-0.5 h-${leaderDirection === 'ltr' ? '12' : '0'} mb-2 bg-white/50`} />
 
-                        {/* Note display */}
                         <div className="px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-[2px] text-white font-mono text-lg font-bold">
                             {pitchData?.note ? (
                                 <>
@@ -411,7 +396,6 @@ export function SpectrogramDisplay({ pitchData, isRecording, isDarkMode }: Spect
                             ) : '—'}
                         </div>
 
-                        {/* Cents indicator */}
                         {pitchData?.note && (
                             <div className="mt-1 flex items-center gap-1">
                                 <div className={`h-0.5 w-4 rounded-full transition-colors ${Math.abs(pitchData.cents) <= 5

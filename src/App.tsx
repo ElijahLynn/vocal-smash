@@ -104,7 +104,7 @@ function App() {
   return (
     <div className="min-h-screen dark">
       <div
-        className="relative w-screen h-screen bg-gray-900 text-gray-100"
+        className="relative w-screen h-screen bg-black text-gray-100"
         onClick={handleScreenClick}
       >
         <SpectrogramDisplay

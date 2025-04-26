@@ -7,6 +7,7 @@ export interface PitchDetectionResult {
     cents: number;
     confidence: number;
     rms: number;
+    clarity: number;
     frequencyData?: Float32Array;
 }
 
@@ -169,6 +170,7 @@ export class PitchDetector {
                 cents: 0,
                 confidence: 0,
                 rms,
+                clarity: 0,
                 frequencyData
             };
         }
@@ -197,6 +199,7 @@ export class PitchDetector {
                 ...noteInfo,
                 confidence: clarity,
                 rms,
+                clarity,
                 frequencyData
             };
         }
@@ -208,6 +211,7 @@ export class PitchDetector {
             cents: 0,
             confidence: 0,
             rms,
+            clarity: 0,
             frequencyData
         };
     }
