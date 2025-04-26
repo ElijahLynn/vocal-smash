@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PitchDetector } from './audio/PitchDetector';
 import { PitchDisplay } from './ui/components/PitchDisplay';
@@ -8,6 +8,17 @@ import { useAudioPermission } from './ui/hooks/useAudioPermission';
 import { useRegisterSW } from './pwa/useRegisterSW';
 
 function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   const detectorRef = useRef<PitchDetector | null>(null);
   const animationFrameRef = useRef<number>();
 
@@ -78,18 +89,35 @@ function App() {
     setPitchData(null);
   };
 
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <header className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-natural-primary">Vocal Smash</h1>
-        <p className="text-gray-600 mt-2">Real-time pitch detection</p>
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black'
+    }`}>
+      <header className="mb-8 text-center relative w-full">
+        <h1 className={`text-4xl font-bold ${
+          isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
+        }`}>Vocal Smash</h1>
+        <p className={`mt-2 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>Real-time pitch detection</p>
+
+        <button
+          onClick={toggleDarkMode}
+          className={`absolute right-4 top-0 p-2 rounded-full ${
+            isDarkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-200 text-gray-600'
+          } hover:opacity-80 transition-opacity`}
+        >
+          {isDarkMode ? '☀️' : '🌙'}
+        </button>
       </header>
 
       <main className="w-full max-w-lg space-y-6">
-        <PitchDisplay pitchData={pitchData} isRecording={isRecording} />
+        <PitchDisplay pitchData={pitchData} isRecording={isRecording} isDarkMode={isDarkMode} />
 
         {history.length > 0 && (
-          <PitchHistory history={history} />
+          <PitchHistory history={history} isDarkMode={isDarkMode} />
         )}
 
         <div className="flex justify-center gap-4">
@@ -101,7 +129,9 @@ function App() {
             className={`px-8 py-3 rounded-full font-semibold text-white shadow-lg
               ${isRecording
                 ? 'bg-pitch-sharp hover:bg-red-600'
-                : 'bg-natural-primary hover:bg-natural-hover'
+                : isDarkMode
+                  ? 'bg-indigo-600 hover:bg-indigo-700'
+                  : 'bg-natural-primary hover:bg-natural-hover'
               } ${isDenied ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isRecording ? 'Stop' : 'Start'}
@@ -112,7 +142,9 @@ function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={clearHistory}
-              className="px-8 py-3 rounded-full font-semibold text-gray-600 hover:text-gray-800"
+              className={`px-8 py-3 rounded-full font-semibold ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'
+              }`}
             >
               Clear History
             </motion.button>
@@ -125,7 +157,9 @@ function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg text-center"
+              className={`mt-4 p-4 rounded-lg text-center ${
+                isDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+              }`}
             >
               {error || permissionError}
             </motion.div>
@@ -133,13 +167,17 @@ function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="mt-auto py-4 text-sm text-gray-500 text-center">
+      <footer className={`mt-auto py-4 text-sm text-center ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+      }`}>
         <p>Built with ❤️ for singers</p>
 
         {isUpdateAvailable && (
           <button
             onClick={updateServiceWorker}
-            className="mt-2 text-natural-primary hover:text-natural-hover"
+            className={`mt-2 ${
+              isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
+            }`}
           >
             Update available! Click to refresh
           </button>
@@ -148,7 +186,9 @@ function App() {
         {canInstall && (
           <button
             onClick={promptInstall}
-            className="mt-2 block text-natural-primary hover:text-natural-hover"
+            className={`mt-2 block ${
+              isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-natural-primary hover:text-natural-hover'
+            }`}
           >
             Install App
           </button>

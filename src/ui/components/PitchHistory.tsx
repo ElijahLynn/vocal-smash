@@ -4,14 +4,32 @@ import { PitchDetectionResult } from '../../audio/PitchDetector';
 
 interface PitchHistoryProps {
     history: PitchDetectionResult[];
+    isDarkMode: boolean;
 }
 
-export const PitchHistory: React.FC<PitchHistoryProps> = ({ history }) => {
+export const PitchHistory: React.FC<PitchHistoryProps> = ({ history, isDarkMode }) => {
     const maxCents = 50; // Maximum cents deviation to display
     const height = 100; // Height of the graph in pixels
 
     return (
-        <div className="w-full h-32 bg-white rounded-xl shadow-lg p-4 overflow-hidden">
+        <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
+            <h2 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                }`}>Note History</h2>
+            <div className="flex flex-wrap gap-2">
+                {history.map((data, index) => (
+                    <div
+                        key={index}
+                        className={`px-2 py-1 rounded ${isDarkMode
+                                ? 'bg-gray-700 text-gray-300'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                    >
+                        {data.note}
+                        <sub>{data.octave}</sub>
+                    </div>
+                ))}
+            </div>
             <div className="relative w-full h-full">
                 {/* Center line */}
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-gray-200" />
@@ -34,10 +52,10 @@ export const PitchHistory: React.FC<PitchHistoryProps> = ({ history }) => {
                                 <motion.div
                                     key={index}
                                     className={`absolute w-1 rounded-full ${Math.abs(point.cents) <= 5
-                                            ? 'bg-pitch-perfect'
-                                            : point.cents > 0
-                                                ? 'bg-pitch-sharp'
-                                                : 'bg-pitch-flat'
+                                        ? 'bg-pitch-perfect'
+                                        : point.cents > 0
+                                            ? 'bg-pitch-sharp'
+                                            : 'bg-pitch-flat'
                                         }`}
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{

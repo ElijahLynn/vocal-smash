@@ -5,15 +5,16 @@ import { PitchDetectionResult } from '../../audio/PitchDetector';
 interface PitchDisplayProps {
     pitchData: PitchDetectionResult | null;
     isRecording: boolean;
+    isDarkMode: boolean;
 }
 
-export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecording }) => {
+export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecording, isDarkMode }) => {
     const isSharp = pitchData?.cents && pitchData.cents > 5;
     const isFlat = pitchData?.cents && pitchData.cents < -5;
     const isPerfect = pitchData?.cents && Math.abs(pitchData.cents) <= 5;
 
     const getPitchColor = () => {
-        if (!pitchData) return 'text-gray-400';
+        if (!pitchData) return isDarkMode ? 'text-gray-500' : 'text-gray-400';
         if (isPerfect) return 'text-pitch-perfect';
         if (isSharp) return 'text-pitch-sharp';
         return 'text-pitch-flat';
@@ -22,7 +23,8 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
     const isAccidental = pitchData?.note?.includes('#');
 
     return (
-        <div className="flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-lg">
+        <div className={`flex flex-col items-center justify-center p-8 rounded-xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
             <AnimatePresence mode="wait">
                 {pitchData && (
                     <motion.div
@@ -33,14 +35,18 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
                         className="flex flex-col items-center"
                     >
                         <div className="text-6xl font-bold mb-4">
-                            <span className={`${getPitchColor()} ${isAccidental ? 'text-accidental-primary' : 'text-natural-primary'}`}>
+                            <span className={`${getPitchColor()} ${isAccidental
+                                    ? isDarkMode ? 'text-gray-400' : 'text-accidental-primary'
+                                    : isDarkMode ? 'text-indigo-400' : 'text-natural-primary'
+                                }`}>
                                 {pitchData.note}
                                 <sub className="text-3xl">{pitchData.octave}</sub>
                             </span>
                         </div>
 
                         <motion.div
-                            className="h-2 w-40 bg-gray-200 rounded-full overflow-hidden"
+                            className={`h-2 w-40 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                                }`}
                             initial={false}
                         >
                             <motion.div
@@ -54,7 +60,8 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
                             />
                         </motion.div>
 
-                        <div className="mt-4 text-sm text-gray-600">
+                        <div className={`mt-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
                             {pitchData.frequency.toFixed(1)} Hz
                             <span className="mx-2">|</span>
                             {pitchData.cents > 0 ? '+' : ''}{pitchData.cents} cents
@@ -67,14 +74,14 @@ export const PitchDisplay: React.FC<PitchDisplayProps> = ({ pitchData, isRecordi
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-gray-400 text-xl"
+                    className={isDarkMode ? 'text-gray-400' : 'text-gray-400'}
                 >
                     Listening...
                 </motion.div>
             )}
 
             {!isRecording && (
-                <div className="text-gray-400 text-xl">
+                <div className={isDarkMode ? 'text-gray-400' : 'text-gray-400'}>
                     Press Start to begin
                 </div>
             )}
